@@ -43,6 +43,7 @@ class FifaBrowser(object):
         self.accessToken = ""
         self.personaId = ""
         self.name = ""
+        self.phishingToken = ""
 
     def iframeHeaderList(self):
         return [(key, self.iframeHeaders[key]) for key in self.iframeHeaders]
@@ -50,7 +51,7 @@ class FifaBrowser(object):
     def saveCookies(self):
         self.cj.save()
 
-    def search(self, min_price = None, max_price = None, min_buy = None, max_buy = None, quality = None, id = 0):
+    def search(self, reauth=True, min_price = None, max_price = None, min_buy = None, max_buy = None, quality = None, id = 0):
         # type:              [player,
         # num:  num results (int = 16)
         # minb: Min Buyout  (int)
@@ -66,8 +67,6 @@ class FifaBrowser(object):
                   "type": "player"}
 
         # Add search constraints
-
-
         url = "https://utas.external.s2.fut.ea.com/ut/game/fifa17/transfermarket"
         # Add search params
         if len(params) > 0:
@@ -78,10 +77,16 @@ class FifaBrowser(object):
         url = url[:-1] # Remove the last &
 
         print url
-        r = self.br.open(url).read()
+        self.iframeHeaders['X-Requested-With'] = "ShockwaveFlash/23.0.0.207"
+        self.iframebr.addheaders = self.iframeHeaderList()
+
+        r = self.iframebr.open(url).read()
         market_data = json.loads(r)
         if "reason" in market_data:
             print "Need to auth"
+            self.auth()
+            self.search(reauth=False)
+        print market_data
 
 
     # Utilities
@@ -229,7 +234,10 @@ class FifaBrowser(object):
             # Need to answer question
             print "Answering Question"
             r = self.iframebr.open("https://www.easports.com/iframe/fut17/p/ut/game/fifa17/phishing/validate", "answer="+SECURITY_ANSWER_HASH).read()
-            print r
+            response = json.loads(r)
+            if ("code" in response and response["code"] == "200"):
+                self.phishingToken = response["token"]
+                self.iframeHeaders["X-UT-PHISHING-TOKEN"] = self.phishingToken
             return True
         else:
             print "Question already answered"
