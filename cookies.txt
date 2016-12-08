@@ -1,0 +1,9 @@
+#LWP-Cookies-2.0
+Set-Cookie3: _nx_mpcid="83ef5895-da34-4b26-87b1-55b490bb8e0f"; path="/"; domain=".ea.com"; path_spec; domain_dot; expires="2021-11-12 05:01:34Z"; version=0
+Set-Cookie3: remid="TUU6ajF6cHZCbXNBanZKam8xTFdJNmc4bU9uemZ5UFZOWlYxUmRFNW5tdToxMjA4Nzg3OTY.dn9iySlvK8tTF6KqnrIIqTnoq4sW7zXs5GNnaFOR"; path="/connect"; domain="accounts.ea.com"; path_spec; secure; expires="2017-02-06 05:01:34Z"; HttpOnly=None; version=0
+Set-Cookie3: isPogo=false; path="/"; domain="signin.ea.com"; path_spec; expires="2016-12-15 05:01:25Z"; version=0
+Set-Cookie3: webun="\"miniroo321@gmail.com\""; path="/"; domain="signin.ea.com"; path_spec; expires="2016-12-15 05:01:25Z"; version=0
+Set-Cookie3: 599e95a7=1; path="/"; domain="www.easports.com"; path_spec; expires="2016-12-10 05:01:37Z"; version=0
+Set-Cookie3: EASFC-WEB-SESSION=471tesqqp5f42h3li0vkb5v0e0; path="/"; domain="www.easports.com"; path_spec; expires="2016-12-09 05:01:38Z"; HttpOnly=None; version=0
+Set-Cookie3: EASSSO=942b0505080a0cf47f9061cc8e10d3cf80e4dfae08673f64c7705571c94d086b; path="/"; domain="www.easports.com"; path_spec; expires="2016-12-10 05:01:37Z"; version=0
+Set-Cookie3: hl=us; path="/"; domain="www.easports.com"; path_spec; expires="2017-12-08 05:01:21Z"; version=0
