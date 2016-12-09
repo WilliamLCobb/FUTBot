@@ -5,6 +5,7 @@ import time
 import cookielib
 import copy
 import models
+import functools
 
 # Not sure what this number does, doesnt change
 # It is EASW_ID in 60a8e93.js file
@@ -29,10 +30,10 @@ class FifaBrowser(object):
         self.br = mechanize.Browser()
         self.iframebr = mechanize.Browser()
         self.cj = cookielib.LWPCookieJar("cookies.txt")
-        # try:
-        #     self.cj.load()
-        # except:
-        #     pass
+        try:
+            self.cj.load()
+        except:
+            pass
 
         self.br.set_cookiejar(self.cj)
         self.br.addheaders = [('User-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.98 Safari/537.36')]
@@ -67,7 +68,6 @@ class FifaBrowser(object):
         # start: offset     (int =  multiple of num)
         # maskedDefId: item filter (int) Exmaple: Ronaldo = 20801
 
-        print "Searching"
         market_items = []
 
         for i in range(1, 2):
@@ -82,13 +82,21 @@ class FifaBrowser(object):
                 url += p + "=" + str(params[p]) + "&"
             url = url[:-1] # Remove the last &
 
-            print url
+            #print url
             self.iframeHeaders['X-Requested-With'] = "ShockwaveFlash/23.0.0.207"
             self.iframebr.addheaders = self.iframeHeaderList()
 
-            r = self.iframebr.open(url).read()
+            try:
+                r = self.iframebr.open(url).read()
+            except mechanize.HTTPError as e:
+                print "Server error"
+                return None
+                print e.code
+                print e
+
             response = json.loads(r)
             if "reason" in response:
+                print "Search error:", response
                 if reauth:
                     # Not authorized
                     print "Reauthorizing"
@@ -98,6 +106,9 @@ class FifaBrowser(object):
                     print "Error, reauth failed"
             else:
                 # Got market data
+                if (reauth):
+                    # Got a response without having to login again
+                    self.authorizations = 0
                 market_items += response['auctionInfo']
         return market_items
 
@@ -114,7 +125,6 @@ class FifaBrowser(object):
         return False
 
     def login(self, username, password, answer):
-
         r = self.br.open("https://www.easports.com/fifa/ultimate-team/web-app")
         url = self.br.geturl()
         if not url.find("https://signin.ea.com") == 0:
@@ -156,10 +166,14 @@ class FifaBrowser(object):
           'https': 'https://192.168.1.82:8080',
         }
 
+        if 'X-UT-SID' in self.iframeHeaders:
+            del self.iframeHeaders['X-UT-SID']
+
         post_data = { "isReadOnly": False, "sku": "FUT17WEB", "clientVersion": 1, "nucleusPersonaId": str(self.personaId), "nucleusPersonaDisplayName": self.name, "gameSku": "FFA17PS4", "nucleusPersonaPlatform": "ps3", "locale": "en-US", "method": "authcode", "priorityLevel":4, "identification": { "authCode": "" } }
 
         r = requests.post("https://www.easports.com/iframe/fut17/p/ut/auth", json=post_data, headers=self.iframeHeaders, cookies=self.cj, proxies=proxies)
         response = json.loads(r.text)
+        print "Auth Response:", response
         self.iframeHeaders['X-UT-SID'] = response['sid']
         self.iframebr.addheaders = self.iframeHeaderList()
 
@@ -258,6 +272,19 @@ class FifaBrowser(object):
             return True
 
 
+class Task(object):
+    def __init__(self, function, interval, name):
+        self.lastFire = 0
+        self.function = function
+        self.interval = interval
+        self.name = name
+
+    def fire(self):
+        if (time.time() - self.lastFire > self.interval):
+            print "Executing:", self.name
+            self.function()
+            self.lastFire = time.time()
+
 class FUTBot(object):
     def __init__(self):
         self.browser = FifaBrowser()
@@ -270,22 +297,41 @@ class FUTBot(object):
             if (self.browser.afterLoginSequence()):
                 return True
         else:
+            #try clearing cookies and logging in again
+            self.browser.cj.clear_session_cookies()
+            if (self.browser.login(email, password, answer)):
+                self.browser.saveCookies()
+                print "Logged in"
+                if (self.browser.afterLoginSequence()):
+                    return True
             print "Failed to log in"
 
         return False
 
     def search_market(self):
+        auctions = self.browser.search()
+        for auction in auctions:
+            # Update player in db
+            player = auction['itemData']
+            models.Player.update_player(player['assetId'], player['id'], player['rating'], player['teamid'],
+                                        player['nation'], player['discardValue'], player['preferredPosition'], player['rareflag'])
 
+            # Add bid sample
+            models.Auction_Sample.add_sample(auction['tradeId'], player['assetId'], auction['buyNowPrice'], auction['currentBid'],
+                                             auction['startingBid'], auction['offers'])
+
+    def update_players(self):
+        pass
 
     def start_bot(self):
         print "Bot started"
 
-        tasks = {}
-
+        # Function: second interval wait
+        tasks = [Task(self.search_market, 30, "Market Search")]
         while True:
-
-            market_data = self.browser.search()
-
+            for task in tasks:
+                task.fire()
+            time.sleep(1)
 
 def updatePlayerDatabase():
     pass
@@ -294,6 +340,7 @@ def updatePlayerDatabase():
 # Our main function
 if __name__ == "__main__":
     bot = FUTBot()
+    models.create_tables()
     if bot.login("miniroo321@gmail.com", "Llamas123", "Harrison"):
         print "Successfully Logged in"
         bot.start_bot()

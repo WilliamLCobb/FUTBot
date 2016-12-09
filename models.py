@@ -34,6 +34,9 @@ def init_database():
 
     return db
 
+def current_time():
+    return int(time.time())
+
 class BaseModel(Model):
     class Meta:
         database = init_database()
@@ -53,13 +56,16 @@ class Player(BaseModel):
     unique_id = BigIntegerField()
     rating = IntegerField()
     team = IntegerField()
+    country = IntegerField()
     discard_value = IntegerField()
     position = CharField()
+    rare = BooleanField()
 
-    def update_player(cls, asset_id, unique_id, rating, team, discard_value, position):
+    @classmethod
+    def update_player(cls, asset_id, unique_id, rating, team, country, discard_value, position, rare):
         query = (Player
-                .insert(asset_id=asset_id, unique_id=unique_id, rating=rating, team=team, discard_value=discard_value,
-                        position=position).upsert())
+                .insert(asset_id=asset_id, unique_id=unique_id, rating=rating, team=team, country=country, discard_value=discard_value,
+                        position=position, rare=rare).upsert())
         query.execute()
 
 class Auction_Sample(BaseModel):
@@ -68,19 +74,19 @@ class Auction_Sample(BaseModel):
     buy_price = IntegerField()
     current_bid = IntegerField()
     starting_bid = IntegerField()
-    rare = BooleanField()
     offers = IntegerField()
     sample_time = IntegerField()
 
     @classmethod
-    def add_sample(cls, trade_id, asset_id, buy_price, current_bid, starting_bid, rare, offers):
+    def add_sample(cls, trade_id, asset_id, buy_price, current_bid, starting_bid, offers):
         query = (Auction_Sample
                  .insert(trade_id=trade_id, asset_id=asset_id, buy_price=buy_price, current_bid=current_bid,
-                         starting_bid=starting_bid, rare=rare, offers=offers).upsert())
+                         starting_bid=starting_bid, offers=offers, sample_time=current_time()).upsert())
         query.execute()
 
 
-def create_tables(db):
+def create_tables():
+    db = init_database()
     db.connect()
     print "Creating Tables"
     db.create_tables([AssetName, Player, Auction_Sample], safe=True)
