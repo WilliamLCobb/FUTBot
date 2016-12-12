@@ -22,13 +22,16 @@ class FifaBrowser(object):
 
         options = webdriver.ChromeOptions()
         options.add_argument('--proxy-server={host}:{port}'.format(host='localhost', port=self.proxy.port))
-        self.browser = webdriver.Chrome(root_path+'/selenium/chromedriver-osx', chrome_options=options)
+        if platform.system() == 'Windows':
+            self.browser = webdriver.Chrome(root_path+'/selenium/chromedriver', chrome_options=options)
+            self.input_controller = HIDInput_Windows(correction=(0, 0))
+        else:
+            self.browser = webdriver.Chrome(root_path+'/selenium/chromedriver-osx', chrome_options=options)
+            self.input_controller = HIDInput_OSX(correction=(0, 5))
+
         self.browser.set_window_size(1440, 900)
         self.browser.set_window_position(0, 0)
-        if platform.system() == 'Windows':
-            self.input_controller = HIDInput_Windows()
-        else:
-            self.input_controller = HIDInput_OSX()
+
 
         if (not self.input_controller.set_window("data:, - Google Chrome")):
             raise Exception
@@ -66,18 +69,16 @@ class FifaBrowser(object):
         if os.path.isfile(root_path + "/cookies.pkl"):
             os.remove(root_path+"/cookies.pkl")
 
+    # Interacting with main interface
+
     def search(self,  reauth=True, min_price = None, max_price = None, min_buy = None, max_buy = None, quality = None, id = 0):
-        # type:              [player,
-        # num:  num results (int = 16)
-        # minb: Min Buyout  (int)
-        # maxb: Max Buyout  (int)
-        # micr: Min price   (int)
-        # macr: Max price   (int)
-        # lev: quality      [gold, silver, bronze]
-        # start: offset     (int =  multiple of num)
-        # maskedDefId: item filter (int) Exmaple: Ronaldo = 20801
         pass
 
+    def buy_card(self, index):
+        pass
+
+    def sell_card(self):
+        pass
 
 
     def login(self, email, password, answer):
@@ -166,7 +167,7 @@ class HIDInput_Windows(object):
         self.correction = correction
 
     def window_rect(self):
-        return win32gui.GetWindowRect(self.hwnd);
+        return win32gui.GetWindowRect(self.hwnd)
 
     def set_window(self, windowTitle):
         # Search all open Windows
@@ -221,7 +222,8 @@ class HIDInput_Windows(object):
         pyautogui.click()
 
     def mouse_position(self):
-        return pyautogui.position()
+        pos = pyautogui.position()
+        return pos[0] + self.correction[0], pos[1], self.correction[1]
 
     def send_string(self, string):
         pyautogui.typewrite(string, interval=0.2)

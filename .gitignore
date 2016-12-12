@@ -1,1 +1,10 @@
 cookies.txt
+*.pyc
+
+.idea/FUTBot.iml
+
+.idea/FUTBot.iml
+
+.idea/misc.xml
+
+.idea/workspace.xml
