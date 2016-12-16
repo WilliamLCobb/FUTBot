@@ -47,9 +47,26 @@ class BaseModel(Model):
         return results
 
 
+
 class AssetName(BaseModel):
     asset_id = BigIntegerField(primary_key=True)
     name = CharField()
+
+    @classmethod
+    def add_name(cls, player_name, id):
+        query = (AssetName
+                .insert(asset_id=id, name=player_name).upsert())
+        query.execute()
+
+    @classmethod
+    def name_for_id(cls, id):
+        query = (AssetName
+                 .select(AssetName.name)
+                 .where(AssetName.asset_id == id))
+        names = query.dicts()
+        if (len(names) == 1):
+            return names[0]['name']
+        raise Exception("Invalid ID: "+str(id))
 
 class Player(BaseModel):
     asset_id = BigIntegerField(primary_key=True)
@@ -76,6 +93,15 @@ class Auction_Sample(BaseModel):
     starting_bid = IntegerField()
     offers = IntegerField()
     sample_time = IntegerField()
+
+    @classmethod
+    def player_price(cls, player_id, time_range):
+        query = (Auction_Sample
+                 .select(Auction_Sample.buy_price)
+                 .where(Auction_Sample.asset_id == player_id, Auction_Sample.sample_time > time.time() - time_range)
+                 )
+        prices = query.dicts()
+        return [price['buy_price'] for price in prices]
 
     @classmethod
     def add_sample(cls, trade_id, asset_id, buy_price, current_bid, starting_bid, offers):

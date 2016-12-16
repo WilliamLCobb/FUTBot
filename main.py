@@ -1,10 +1,10 @@
-import time
-import models
-import os
-import random
-import pickle
+import sys
+import FUTBot
+from FUTBot import FUTBot
+
 import atexit
 from FifaBrowser import FifaBrowser
+import models
 
 # Useful items
 # Player list: https://fifa17.content.easports.com/fifa/fltOnlineAssets/CC8267B6-0817-4842-BB6A-A20F88B05418/2017/fut/items/web/players.json
@@ -23,76 +23,57 @@ from FifaBrowser import FifaBrowser
 
 
 
-class Task(object):
-    def __init__(self, function, interval, name):
-        self.lastFire = 0
-        self.function = function
-        self.interval = interval
-        self.name = name
-
-    def fire(self):
-        if (time.time() - self.lastFire > self.interval):
-            print "Executing:", self.name
-            self.function()
-            self.lastFire = time.time()
-
-class FUTBot(object):
-    def __init__(self):
-        self.browser = FifaBrowser()
-
-    def login(self, email, password, answer):
-        return self.browser.login(email, password, answer)
-
-    def quit(self):
-        x = raw_input("Save Cookies?")
-        if x == "y":
-            self.browser.save_cookies()
-
-    def search_market(self):
-        auctions = self.browser.search()
-        for auction in auctions:
-            # Update player in db
-            player = auction['itemData']
-            models.Player.update_player(player['assetId'], player['id'], player['rating'], player['teamid'],
-                                        player['nation'], player['discardValue'], player['preferredPosition'], player['rareflag'])
-
-            # Add bid sample
-            models.Auction_Sample.add_sample(auction['tradeId'], player['assetId'], auction['buyNowPrice'], auction['currentBid'],
-                                             auction['startingBid'], auction['offers'])
-
-    def update_players(self):
-        pass
-
-    def start_bot(self):
-        print "Bot started"
-
-        # Function: second interval wait
-        tasks = [Task(self.search_market, 30, "Market Search")]
-        while True:
-            for task in tasks:
-                task.fire()
-            time.sleep(1)
-
-    def updatePlayerDatabase(self):
-        pass
-
-
-
 def cleanup(bot):
     print "Shutting down bot"
-    bot.quit()
+    bot.stop()
+
+# Reload the bot without having to restart browser
+def reload_bot():
+    print "Reloading"
+    #del sys.modules['FUTBot']
+    import FUTBot
+    reload(FUTBot)
+    from FUTBot import FUTBot
 
 # Our main function
 if __name__ == "__main__":
-    bot = FUTBot()
+    browser = FifaBrowser()
+    bot = FUTBot(browser)
+
     models.create_tables()
     atexit.register(cleanup, bot)
+
     #if bot.login("miniroo321@gmail.com", "Llamas123", "Harrison"):
     if bot.login("mellowman@zain.site", "Llamas12", "Harrison"):
         print "Successfully Logged in"
-        bot.start_bot()
+        bot.start()
     else:
         print "Failed to login, stopping bot"
+
+    while True:
+        command = raw_input("> ")
+        if command == 'r':
+            print "Reloading Bot"
+            print sys.modules
+            bot.stop()
+            bot.join()
+            reload_bot()
+            bot = FUTBot(browser)
+            bot.start()
+        elif command == 'stop':
+            print "Stopping"
+            bot.stop()
+            bot.join()
+        elif command == 'start':
+            print "Starting"
+            reload_bot()
+            bot = FUTBot(browser)
+            bot.start()
+        else:
+            print "Invalid Input"
+            continue
+        print "Done"
+
 
 
 

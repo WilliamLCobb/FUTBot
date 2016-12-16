@@ -1,9 +1,11 @@
 import time
 import pyautogui
 import platform
-
+import copy
 import random
 import pickle
+import json
+import subprocess
 
 from config import *
 
@@ -15,6 +17,11 @@ from browsermobproxy import Server
 
 class FifaBrowser(object):
     def __init__(self):
+        # Start Selenium and Browsermob-proxy
+        self.selenium_process = subprocess.Popen("java -jar "+root_path+"/selenium/selenium-server-standalone-2.53.1.jar", shell=True, stdout=subprocess.PIPE)
+        self.selenium_process = subprocess.Popen("java -jar "+root_path+"/selenium/browsermob-dist-2.1.2.jar", shell=True, stdout=subprocess.PIPE)
+
+
         # Create Proxy
         self.server = Server(root_path+"/selenium/browsermob-proxy", {'port':8080})
         self.server.start()
@@ -29,6 +36,7 @@ class FifaBrowser(object):
             self.browser = webdriver.Chrome(root_path+'/selenium/chromedriver-osx', chrome_options=options)
             self.input_controller = HIDInput_OSX(correction=(0, 5))
 
+        print self.browser.session_id
         self.browser.set_window_size(1440, 900)
         self.browser.set_window_position(0, 0)
 
@@ -40,6 +48,7 @@ class FifaBrowser(object):
         print "Sending"
 
         # Member Variables
+        self.loggedIn = False
         self.cookiesLoaded = False
 
 
@@ -57,41 +66,103 @@ class FifaBrowser(object):
         self.cookiesLoaded = True
         if os.path.isfile(root_path+"/cookies.pkl"):
             cookies = pickle.load(open(root_path+"/cookies.pkl", "rb"))
-            for cookie in cookies:
-                try:
-                    self.browser.add_cookie(cookie)
-                    print cookie
-                except:
-                    pass
+            if cookies:
+                for cookie in cookies:
+                    try:
+                        self.browser.add_cookie(cookie)
+                        #print cookie
+                    except:
+                        pass
 
     def clear_cookies(self):
+        print "Clearing Cookies"
         self.browser.delete_all_cookies()
         if os.path.isfile(root_path + "/cookies.pkl"):
             os.remove(root_path+"/cookies.pkl")
 
+    def footbin_lookup(self, card_id):
+        pass
     # Interacting with main interface
+    # (714, 325) - Transfers
+    # (570, 355) - Transfer Market
 
-    def search(self,  reauth=True, min_price = None, max_price = None, min_buy = None, max_buy = None, quality = None, id = 0):
-        pass
+    # (506, 567) - Min Price
+    # (505, 609) - Max Price
+    # (502, 667) - Min BIN
+    # (499, 706) - Max BIN
 
-    def buy_card(self, index):
-        pass
+    # Each box is about 21 pixels high
+    # (696, 557) - Quality Select (any, bronze, silver, gold)
 
-    def sell_card(self):
-        pass
+    # (396, 472) - Type Player name
+    # (380, 503) -  Click first result
 
+    # (487, 776)- Search
+    # (286, 599) - First Player
+    # 48 pixel offset
+    # (1147, 582) - Last Player (12 total)
+    # (1031, 476) - Bid
+    # (1027, 504) - Buy Now
+    # (792, 585) - Next Page
+
+    def start_scan(self, min_price = None, max_price = None, min_buy = None, max_buy = None, quality = None, name=None):
+        self.input_controller.move_mouse(714, 325) # TRANSFERS
+        self.input_controller.click()
+        self.pause(1, 2)
+        self.input_controller.move_mouse(570, 355) # TRANSFER MARKET
+        self.pause(1, 2)
+        self.input_controller.click()
+
+        # Input variables
+
+        # Press Search
+        self.input_controller.move_mouse(487, 776) # SEARCH
+        self.pause(2, 3)
+        self.proxy.new_har(options={"captureContent": True})
+        self.input_controller.click()
+        self.pause(3, 4)
+        data = copy.deepcopy(self.proxy.har)
+        for entry in data["log"]["entries"]:
+            url = entry['request']['url']
+            if ("https://utas.external." in url and "transfermarket" in url):
+                return json.loads(entry['response']['content']['text'])["auctionInfo"]
+        print "Did not get auction data"
+
+    def next_page(self):
+        self.input_controller.move_mouse(792, 585) # SEARCH
+        self.pause(1, 2)
+        self.proxy.new_har(options={"captureContent": True})
+        self.input_controller.click()
+        self.pause(2, 3)
+        data = copy.deepcopy(self.proxy.har)
+        for entry in data["log"]["entries"]:
+            url = entry['request']['url']
+            if ("https://utas.external." in url and "transfermarket" in url):
+                return json.loads(entry['response']['content']['text'])["auctionInfo"]
+
+    def bid_card(self, index, buy=False):
+        self.input_controller.move_mouse(286 + index * 48, 600) # Click player card
+        self.input_controller.click()
+        self.pause(3, 4)
+        # if (buy):
+        #     self.input_controller.move_mouse(1031, 504) # Click bid
+        # else:
+        #     self.input_controller.move_mouse(1031, 476) # Click bid
+        #self.input_controller.click()
 
     def login(self, email, password, answer):
+        if (self.loggedIn):
+            return True
         print "Logging in"
-        self.browser.get("https://www.easports.com")
+        #self.browser.get("https://www.easports.com")
 
-        self.load_cookies()
+        #self.load_cookies()
 
-        self.browser.get("https://www.easports.com/fifa/ultimate-team/web-app")
+        #self.browser.get("https://www.easports.com/fifa/ultimate-team/web-app")
 
-        if self.browser.title == "Log In":
-            self.clear_cookies()
-            self.pause(3, 5)
+        if True:#self.browser.title == "Log In":
+            #self.clear_cookies()
+            #self.pause(3, 5)
             self.browser.get("https://www.easports.com/fifa/ultimate-team/web-app")
             self.browser.find_element_by_id("email").clear()
             self.browser.find_element_by_id("email").send_keys(email)
@@ -106,32 +177,32 @@ class FifaBrowser(object):
             self.pause(2, 4)
             self.browser.find_element_by_css_selector("#btnTFAVerify > span > span").click()
 
-        self.pause(20, 30) # Wait for the page to load
+        self.pause(8, 12) #
 
         self.input_controller.move_mouse(319, 500)
         self.input_controller.click()
         self.pause(1, 2)
         self.input_controller.send_string(answer)
-        self.pause(2, 3)
+        self.pause(1, 2)
         self.input_controller.move_mouse(345, 536)
         self.input_controller.click()
-
+        self.pause(25, 30)# Wait for the web app to load
         self.save_cookies()
 
-        # self.browser.find_element_by_css_selector("input.futPhishingTextBoxTyped").clear()
-        # self.browser.find_element_by_css_selector("input.futPhishingTextBoxTyped").send_keys(answer)
-        # self.pause(2, 3)
-        # self.browser.find_element_by_css_selector("input.futPhishingButtonArrow.futPhishingButton").click()
+        self.loggedIn = True
+        return True
 
-        while True:
-            print self.input_controller.mouse_position()
-            time.sleep(3)
+        # while True:
+        #     print self.input_controller.mouse_position()
+        #     time.sleep(3)
+
 
 class HIDInput_OSX(object):
     def __init__(self, correction=(0,0)):
         self.hwnd = None
         self.correction = correction
 
+    # These need to be actually implemented
     def window_rect(self):
         return (0, 0, 1440, 900)
 
@@ -151,7 +222,8 @@ class HIDInput_OSX(object):
         pyautogui.click()
 
     def mouse_position(self):
-        return pyautogui.position()
+        position = pyautogui.position()
+        return position[0] + self.correction[0], position[1] + self.correction[1]
 
     def send_string(self, string):
         pyautogui.typewrite(string, interval=0.2)
@@ -223,7 +295,7 @@ class HIDInput_Windows(object):
 
     def mouse_position(self):
         pos = pyautogui.position()
-        return pos[0] + self.correction[0], pos[1], self.correction[1]
+        return pos[0] + self.correction[0], pos[1] + self.correction[1]
 
     def send_string(self, string):
         pyautogui.typewrite(string, interval=0.2)
