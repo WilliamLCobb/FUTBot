@@ -138,7 +138,10 @@ class FifaBrowser(object):
         for entry in data["log"]["entries"]:
             url = entry['request']['url']
             if ("https://utas.external." in url and "transfermarket" in url):
-                return json.loads(entry['response']['content']['text'])["auctionInfo"]
+                if ('text' in entry['response']['content']):
+                    return json.loads(entry['response']['content']['text'])["auctionInfo"]
+                else:
+                    print "Invalid response", entry
 
     def bid_card(self, index, buy=False):
         self.input_controller.move_mouse(286 + index * 48, 600) # Click player card

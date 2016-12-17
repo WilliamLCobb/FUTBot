@@ -50,7 +50,7 @@ class FUTBot(Thread):
                                                  auction['startingBid'], auction['offers'])
 
                 # Last 6 hours
-                short_range = models.Auction_Sample.player_price(player['assetId'], 3600 * 6) # Market price last 12 hours
+                short_range = models.Auction_Sample.player_price(player['assetId'], 3600 * 12) # Market price last 12 hours
                 short_average = self.minimal_average(short_range, 4, 10)
                 # Last 3 days
                 long_range =  models.Auction_Sample.player_price(player['assetId'], 3600 * 24 * 3)
@@ -72,7 +72,7 @@ class FUTBot(Thread):
                     print long_range
                     print
                     self.browser.bid_card(i)
-                    playsound.playsound(root_path+"/Resourcess")
+                    playsound.playsound(root_path+"/resources/chime.mp3")
                     time.sleep(60)
 
             auctions = self.browser.next_page()

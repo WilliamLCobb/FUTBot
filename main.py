@@ -5,6 +5,8 @@ from FUTBot import FUTBot
 import atexit
 from FifaBrowser import FifaBrowser
 import models
+import playsound
+from config import *
 
 # Useful items
 # Player list: https://fifa17.content.easports.com/fifa/fltOnlineAssets/CC8267B6-0817-4842-BB6A-A20F88B05418/2017/fut/items/web/players.json

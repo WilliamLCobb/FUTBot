@@ -1,5 +1,7 @@
 cookies.txt
 *.pyc
+*.log
+*.pkl
 
 .idea/FUTBot.iml
 
