@@ -29,11 +29,11 @@ class FUTBot(Thread):
         return self.browser.login(email, password, answer)
 
     def search_market(self):
-        auctions = self.browser.start_scan()
+        auctions = self.browser.start_scan(quality='gold')
         if not auctions:
             print "No auction data"
             return
-        for i in range(random.randint(25, 30)):
+        for i in range(random.randint(15, 20)):
             if not self.running:
                 return
             if not auctions:
@@ -51,7 +51,7 @@ class FUTBot(Thread):
 
                 # Last 6 hours
                 short_range = models.Auction_Sample.player_price(player['assetId'], 3600 * 12) # Market price last 12 hours
-                short_average = self.minimal_average(short_range, 4, 10)
+                short_average = self.minimal_average(short_range, 3, 10)
                 # Last 3 days
                 long_range =  models.Auction_Sample.player_price(player['assetId'], 3600 * 24 * 3)
                 long_average = self.minimal_average(long_range, 6, 25)
@@ -63,16 +63,20 @@ class FUTBot(Thread):
                 # print "Player:", player['assetId']
                 # print "Short Range Price:", short_average
                 # print "Long Range Price:", long_average
-                if (i <= 12 and (long_average and bid < long_average * 0.85) or (short_average and bid < short_average  * 0.85)):
+                if ((long_average and bid < long_average * 0.85) or (short_average and bid < short_average  * 0.85)):
                     print "Short Range Price:", short_average
                     print "Long Range Price:", long_average
                     print "You should bid on", models.AssetName.name_for_id(player['assetId'])
                     print "Current bid", bid
+                    print i
                     print short_range
                     print long_range
                     print
-                    self.browser.bid_card(i)
+                    #self.browser.bid_card(i)
                     playsound.playsound(root_path+"/resources/chime.mp3")
+                    # for i in range(30):
+                    #     print self.browser.input_controller.mouse_position()
+                    #     time.sleep(1)
                     time.sleep(60)
 
             auctions = self.browser.next_page()

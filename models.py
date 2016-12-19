@@ -7,10 +7,10 @@ import time
 import json
 import random
 import os
+import config
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery,\
                    IntegerField, CharField, DoubleField, BooleanField,\
                    DateTimeField, BigIntegerField, OperationalError, ForeignKeyField
-
 
 
 
@@ -22,15 +22,12 @@ def init_database():
     if db is not None:
         return db
 
-    if not USE_SQLITE:
-        db = MySQLDatabase(
-            '',
-            user='',
-            password='',
-            host='',
-        )
+    if config.console == "ps4":
+        db = SqliteDatabase(root_path + '/FUTBot-PS4.db')
+    elif config.console == "xbox":
+        db = SqliteDatabase(root_path + '/FUTBot-Xbox.db')
     else:
-        db = SqliteDatabase(root_path + '/FUTBot.db')
+        raise Exception(str("Unknown Console:" + config.console))
 
     return db
 
@@ -38,8 +35,6 @@ def current_time():
     return int(time.time())
 
 class BaseModel(Model):
-    class Meta:
-        database = init_database()
 
     @classmethod
     def get_all(cls):
@@ -66,7 +61,8 @@ class AssetName(BaseModel):
         names = query.dicts()
         if (len(names) == 1):
             return names[0]['name']
-        raise Exception("Invalid ID: "+str(id))
+        print "Invalid ID: "+str(id)
+        return "?"
 
 class Player(BaseModel):
     asset_id = BigIntegerField(primary_key=True)

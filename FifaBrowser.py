@@ -92,7 +92,7 @@ class FifaBrowser(object):
     # (499, 706) - Max BIN
 
     # Each box is about 21 pixels high
-    # (696, 557) - Quality Select (any, bronze, silver, gold)
+    # (696, 563) - Quality Select (any, bronze, silver, gold)
 
     # (396, 472) - Type Player name
     # (380, 503) -  Click first result
@@ -114,6 +114,15 @@ class FifaBrowser(object):
         self.input_controller.click()
 
         # Input variables
+        if (quality):
+            quality_list = ['any', 'bronze', 'silver', 'gold']
+            index = quality_list.index(quality) + 1
+            self.pause(1, 2)
+            self.input_controller.move_mouse(696, 563) # Select Quality
+            self.input_controller.click()
+            self.pause(1, 2)
+            self.input_controller.move_mouse(696, 563 + (index * 21)) # Click the right option
+            self.input_controller.click()
 
         # Press Search
         self.input_controller.move_mouse(487, 776) # SEARCH
@@ -125,7 +134,11 @@ class FifaBrowser(object):
         for entry in data["log"]["entries"]:
             url = entry['request']['url']
             if ("https://utas.external." in url and "transfermarket" in url):
-                return json.loads(entry['response']['content']['text'])["auctionInfo"]
+                try:
+                    return json.loads(entry['response']['content']['text'])["auctionInfo"]
+                except Exception, e:
+                    print "Error getting auction data"
+                    print e
         print "Did not get auction data"
 
     def next_page(self):
@@ -138,20 +151,23 @@ class FifaBrowser(object):
         for entry in data["log"]["entries"]:
             url = entry['request']['url']
             if ("https://utas.external." in url and "transfermarket" in url):
-                if ('text' in entry['response']['content']):
+                try:
                     return json.loads(entry['response']['content']['text'])["auctionInfo"]
-                else:
-                    print "Invalid response", entry
+                except Exception, e:
+                    print "Error getting auction data"
+                    print e
 
     def bid_card(self, index, buy=False):
-        self.input_controller.move_mouse(286 + index * 48, 600) # Click player card
+        print index
+        self.input_controller.move_mouse(300, 700) # Highlight first card
+        self.pause(0.5, 1)
+        if (index > 0):
+            self.input_controller.move_mouse(407 + (index - 1) * 67, 700) # Click player card
         self.input_controller.click()
         self.pause(3, 4)
-        # if (buy):
-        #     self.input_controller.move_mouse(1031, 504) # Click bid
-        # else:
-        #     self.input_controller.move_mouse(1031, 476) # Click bid
-        #self.input_controller.click()
+        if (buy):
+            self.input_controller.click()
+
 
     def login(self, email, password, answer):
         if (self.loggedIn):

@@ -6,7 +6,7 @@ import atexit
 from FifaBrowser import FifaBrowser
 import models
 import playsound
-from config import *
+import config
 
 # Useful items
 # Player list: https://fifa17.content.easports.com/fifa/fltOnlineAssets/CC8267B6-0817-4842-BB6A-A20F88B05418/2017/fut/items/web/players.json
@@ -39,14 +39,27 @@ def reload_bot():
 
 # Our main function
 if __name__ == "__main__":
+    # Mellow Man
+    config.console = "ps4"
+    email = "mellowman@zain.site"
+    password = "Llamas12"
+    answer = "Harrison"
+
+    # Cobb
+    # config.console = "xbox"
+    # email = "willlcobb@gmail.com"
+    # password = "Llamas123"
+    # answer = "Harrison"
+
+
     browser = FifaBrowser()
     bot = FUTBot(browser)
 
     models.create_tables()
     atexit.register(cleanup, bot)
 
-    #if bot.login("miniroo321@gmail.com", "Llamas123", "Harrison"):
-    if bot.login("mellowman@zain.site", "Llamas12", "Harrison"):
+
+    if bot.login(email, password, answer):
         print "Successfully Logged in"
         bot.start()
     else:

@@ -20,10 +20,12 @@ for player in players:
         name = player['f'] + " " + player['l']
     print id, name
 
+    models.AssetName.add_name(name, id)
+
     # Search FUTBIN
     futbin_search = urllib2.urlopen('https://www.futbin.com/search?year=17&term='+name.replace(' ', '+') + '&_=1481924519669')
     futbin_data = json.loads(futbin_search)
     print name
     print futbin_data
-    models.AssetName.add_name(name, id)
+
 
